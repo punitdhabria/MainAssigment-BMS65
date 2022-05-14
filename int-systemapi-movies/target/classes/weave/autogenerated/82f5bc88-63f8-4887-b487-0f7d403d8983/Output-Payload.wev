@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_82f5bc88_63f8_4887_b487_0f7d403d8983_Output_Payload = Array<{  Movie: String,   MovieId?: String,   ShowTime: String,   Price: Number,   Theatre: String,   Rating: Number,   City: String,   TotalSeats: Number,   Date: String,   AvailableSeats: Number,   _?: Any}>
+

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<flow name="getMovies1Flow" doc:id="82f5bc88-63f8-4887-b487-0f7d403d8983" >
+		<set-variable value='#[attributes.queryParams.city default ""]' doc:name="city" doc:id="6a68fd66-6038-4b2b-9c3c-3d4b1dc7cb67" variableName="city"/>
+		<choice doc:name="choice" doc:id="12df5e20-a789-4937-a1dc-98a2a46a3e6b" >
+			<when expression="#[isEmpty(vars.city)]">
+				<db:select doc:name="getAllMovies" doc:id="e384c2a5-577b-46a5-864c-ef6f2c0e0565" config-ref="Database_Config">
+					<reconnect frequency="5000" />
+					<db:sql ><![CDATA[SELECT * FROM MovieDetails where ExpiryFlag=:flag]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{flag: "N"}]]]></db:input-parameters>
+				</db:select>
+			</when>
+			<otherwise >
+				<db:select doc:name="getMoviesByCity" doc:id="5a0b9f9c-9fcf-4bc3-922a-d6181b013bf9" config-ref="Database_Config">
+					<reconnect frequency="5000" />
+					<db:sql ><![CDATA[SELECT * FROM MovieDetails where city=:city and ExpiryFlag=:flag]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{city: vars.city,
+	flag: "N"
+}]]]></db:input-parameters>
+				</db:select>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="JAVA TO JSON" doc:id="cad3366b-f965-41a7-b779-af3bb60bb0b7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import tomorrow from dw::core::Dates
+output application/json
+---
+if(payload == [])
+{
+	"message": "No movies for " ++ vars.city 
+}
+else
+{
+	"NOTE": "BOOKING AVAILABLITY FOR  " ++ tomorrow() as String,
+Movies: payload map(item,index)->{
+	Movie: item.MovieName,
+	Theater: item.Theatre,
+	City: item.City,
+	ShowTime: item.ShowTime,
+	TotalSeats: item.TotalSeats,
+	AvailableSeats: item.AvailableSeats,
+	Price: item.Price,
+	Rating: item.Rating
+	
+}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="76afa234-189c-43a1-a73b-846f5022358e" />
+	</flow>
+	<flow name="resetSeats1Flow" doc:id="a6ecb9e6-c5c4-4b12-90ae-f405093a652c" >
+		<db:update doc:name="resetSeatsToOriginal" doc:id="ad97766e-9fd3-4d6a-ab65-9c5ac36fe272" config-ref="Database_Config">
+			<reconnect frequency="5000" />
+			<db:sql ><![CDATA[UPDATE MovieDetails SET AvailableSeats=:seats]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{seats : payload.TotalSeats default 100}]]]></db:input-parameters>
+		</db:update>
+		<logger level="INFO" doc:name="Logger" doc:id="245d2697-3663-453c-bd7a-9126f82327b7" message='#["Seats reset completed"]'/>
+	</flow>
+	<flow name="updateSeats1Flow" doc:id="284ca5ee-301d-407d-927b-92df8dd93d15">
+		<set-variable value="#[attributes.uriParams.movieID]" doc:name="movieID" doc:id="4d9bc0e1-57b6-41a4-8fb3-0ba260f448ef" variableName="movieID" />
+		<db:select doc:name="getAvailableSeats" doc:id="51c527aa-940a-4ede-890c-bd9fce06fa91" config-ref="Database_Config" target="AvailableSeats" targetValue="#[payload[0].AvailableSeats]">
+			<reconnect frequency="5000" />
+			<db:sql><![CDATA[Select AvailableSeats from MovieDetails where MovieID = :movieID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	movieID: vars.movieID
+}]]]></db:input-parameters>
+		</db:select>
+		<validation:is-false doc:name="checkSeats" doc:id="adf71a48-df48-4f41-b39f-113133dda005" config-ref="Validation_Config1" expression="#[vars.AvailableSeats as Number &lt; payload.Seats_booked]" message='#["Requested Seats are greater than available seats"]'>
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:CHECKSEATS" />
+		</validation:is-false>
+		<ee:transform doc:name="newSeats" doc:id="e0dfdc8b-4192-48ba-b107-c127765bf044">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="newSeats"><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "newSeats" : vars.AvailableSeats - payload.Seats_booked as Number default 0
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<db:update doc:name="updateAvailableSeats" doc:id="995a1d2c-7ad6-404b-9d38-144ba785cd5a" config-ref="Database_Config">
+			<reconnect frequency="5000" />
+			<db:sql><![CDATA[update MovieDetails set AvailableSeats=:newSeats where MovieID=:MovieID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	newSeats: vars.newSeats.newSeats,
+	MovieID: vars.movieID
+}]]]></db:input-parameters>
+		</db:update>
+		<logger level="INFO" doc:name="Logger" doc:id="a61dd9dd-d1bc-4efc-8b50-928cda2b4211" message='#["Seats Updated after booking"]' />
+		<error-handler>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="09bd951e-e6c7-48b6-9a12-f10035397f2a" type="APP:CHECKSEATS">
+				<set-payload value='#[error.description]' doc:name="Set Payload" doc:id="c3ca6d70-9472-4dbc-8da8-816bc88e3296" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="getMoviesByIDFlow" doc:id="24533327-cf8f-4886-be01-947df0a0a441" >
+		<set-variable value="#[message.attributes.uriParams.movieID]" doc:name="MovieID" doc:id="f61c68b8-d8cd-480d-9e41-a5e1ac24264d" variableName="MovieID"/>
+		<db:select doc:name="getMoviesByID" doc:id="6a2f3c4c-6423-4f59-8766-46ed6548e72d" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM MovieDetails where MovieID = :MovieID and ExpiryFlag=:flag]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	MovieID : vars.MovieID,
+	flag: "N"
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="4abeaaa3-e1f1-4776-b769-4a4821368556" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import tomorrow from dw::core::Dates
+output application/json
+---
+if(payload == [])
+{
+	"message": "No movie for MovieID  " ++ vars.MovieID
+}
+else
+{
+	"NOTE": "BOOKING AVAILABLITY FOR  " ++ tomorrow() as String,
+Movies: payload map(item,index)->{
+	Movie: item.MovieName,
+	Theater: item.Theatre,
+	City: item.City,
+	ShowTime: item.ShowTime,
+	TotalSeats: item.TotalSeats,
+	AvailableSeats: item.AvailableSeats,
+	Price: item.Price,
+	Rating: item.Rating
+	
+}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

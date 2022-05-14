@@ -1,0 +1,204 @@
+<?xml version='1.0' encoding='UTF-8'?><wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://soap.training.mulesoft.com/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="TicketServiceService" targetNamespace="http://soap.training.mulesoft.com/">
+  <wsdl:types>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://soap.training.mulesoft.com/" elementFormDefault="unqualified" targetNamespace="http://soap.training.mulesoft.com/" version="1.0">
+
+  <xs:element name="getOrders" type="tns:getOrders"/>
+  <xs:element name="getOrdersResponse" type="tns:getOrdersResponse"/>
+  <xs:element name="getOrderbyID" type="tns:getOrderbyID"/>
+  <xs:element name="getOrderbyIDResponse" type="tns:getOrderbyIDResponse"/>
+   <xs:element name="bookOrder" type="tns:bookOrder"/>
+  <xs:element name="bookOrderResponse" type="tns:bookOrderResponse"/>
+     <xs:element name="cancelOrder" type="tns:cancelOrder"/>
+  <xs:element name="cancelOrderResponse" type="tns:cancelOrderResponse"/>
+
+  
+
+  <xs:complexType name="order">
+    <xs:sequence>
+       <xs:element  name="TicketID" type="xs:string"/>
+      <xs:element  name="Movie" type="xs:string"/>
+      <xs:element  name="Theatre" type="xs:string"/>
+      <xs:element  name="City" type="xs:string"/>
+	  <xs:element  name="Date" type="xs:dateTime"/>
+	  <xs:element  name="ShowTime" type="xs:string"/>
+	  <xs:element  name="Seats" type="xs:string"/>
+	  <xs:element  name="Price" type="xs:string"/>
+	  <xs:element name="Status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="getOrders">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="TicketID" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="getOrderbyID">
+    <xs:sequence>
+      <xs:element  name="TicketID" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="bookOrder">
+    <xs:sequence>
+      <!--<xs:element minOccurs="0" name="TicketID" type="xs:string"/>-->
+      <xs:element name="Movie" type="xs:string" />
+      <xs:element  name="Theatre" type="xs:string"/>
+      <xs:element  name="City" type="xs:string"/>
+	  <xs:element  name="Date" type="xs:string"/>
+	  
+	  <xs:element  name="ShowTime" type="xs:string"/>
+	  <xs:element  name="TotalSeats" type="xs:string"/>
+	  
+	  <xs:element  name="Price" type="xs:string"/>
+	  <xs:element  name="Seats" type="xs:string"/>	   
+	  
+    </xs:sequence>
+  </xs:complexType>
+  
+   <xs:complexType name="cancelOrder">
+    <xs:sequence>
+      <xs:element  name="TicketID" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="getOrdersResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="Status" type="tns:order"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getOrderbyIDResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="Status" type="tns:order"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="bookOrderResponse">
+    <xs:sequence>
+	  <xs:element minOccurs="0" name="TicketID" type="xs:string"/>
+      <xs:element minOccurs="0" name="Movie" type="xs:string"/>
+      <xs:element minOccurs="0" name="Theatre" type="xs:string"/>
+      <xs:element minOccurs="0" name="City" type="xs:string"/>
+	  <xs:element minOccurs="0" name="Date" type="xs:dateTime"/>
+	  <xs:element minOccurs="0" name="ShowTime" type="xs:string"/>
+	  <xs:element minOccurs="0" name="Seats" type="xs:string"/>
+	  <xs:element minOccurs="0" name="Price" type="xs:string"/>
+	   <xs:element minOccurs="0" name="Status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="cancelOrderResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="Status" type="tns:order"/>
+    </xs:sequence>
+  </xs:complexType>
+ 
+
+</xs:schema>
+  </wsdl:types>
+  
+  <wsdl:message name="getOrders">
+    <wsdl:part element="tns:getOrders" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getOrderbyID">
+    <wsdl:part element="tns:getOrderbyID" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="bookOrder">
+    <wsdl:part element="tns:bookOrder" name="parameters">
+    </wsdl:part>
+	 </wsdl:message>
+	<wsdl:message name="cancelOrder">
+    <wsdl:part element="tns:cancelOrder" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getOrdersResponse">
+    <wsdl:part element="tns:getOrdersResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getOrderbyIDResponse">
+    <wsdl:part element="tns:getOrderbyIDResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="bookOrderResponse">
+    <wsdl:part element="tns:bookOrderResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="cancelOrderResponse">
+    <wsdl:part element="tns:cancelOrderResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  
+  <wsdl:portType name="TicketService">
+    
+     
+    <wsdl:operation name="getOrders">
+      <wsdl:input message="tns:getOrders" name="getOrders">
+    </wsdl:input>
+      <wsdl:output message="tns:getOrdersResponse" name="getOrdersResponse">
+    </wsdl:output>
+    </wsdl:operation>
+	 <wsdl:operation name="getOrderbyID">
+      <wsdl:input message="tns:getOrderbyID" name="getOrderbyID">
+    </wsdl:input>
+      <wsdl:output message="tns:getOrderbyIDResponse" name="getOrderbyIDResponse">
+    </wsdl:output>
+    </wsdl:operation>
+	<wsdl:operation name="bookOrder">
+      <wsdl:input message="tns:bookOrder" name="bookOrder">
+    </wsdl:input>
+      <wsdl:output message="tns:bookOrderResponse" name="bookOrderResponse">
+    </wsdl:output>
+    </wsdl:operation>
+	 <wsdl:operation name="cancelOrder">
+      <wsdl:input message="tns:cancelOrder" name="cancelOrder">
+    </wsdl:input>
+      <wsdl:output message="tns:cancelOrderResponse" name="cancelOrderResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="TicketServiceServiceSoapBinding" type="tns:TicketService">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+   
+    <wsdl:operation name="getOrders">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getOrders">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getOrdersResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+	 <wsdl:operation name="getOrderbyID">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getOrderbyID">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getOrderbyIDResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+	<wsdl:operation name="bookOrder">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="bookOrder">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="bookOrderResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+	<wsdl:operation name="cancelOrder">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="cancelOrder">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="cancelOrderResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="TicketServiceService">
+    <wsdl:port binding="tns:TicketServiceServiceSoapBinding" name="TicketServicePort">
+      <soap:address location="http://0.0.0.0:8081"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

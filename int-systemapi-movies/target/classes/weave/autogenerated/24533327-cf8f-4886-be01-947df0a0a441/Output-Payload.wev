@@ -1,0 +1,16 @@
+%dw 2.0
+
+type auto_24533327_cf8f_4886_be01_947df0a0a441_Output_Payload = {
+  Movie: String, 
+  MovieId?: String, 
+  ShowTime: String, 
+  Price: Number, 
+  Theatre: String, 
+  Rating: Number, 
+  City: String, 
+  TotalSeats: Number, 
+  Date: String, 
+  AvailableSeats: Number, 
+  _?: Any
+}
+
