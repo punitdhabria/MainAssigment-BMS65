@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="cancelOrderFlow" doc:id="c9fbe56b-7565-464d-8186-7092da723946" >
+		<logger level="INFO" doc:name="Logger" doc:id="24be40b3-d58c-4e8f-a3ba-66f3c1dd3d04" message='#["Cancellation Request for TicketID" ++ payload]'/>
+		<db:select doc:name="getTicketByID" doc:id="daa9387f-3146-42f8-8052-ee88bad4c2d6" config-ref="order-db-config" target="TicketDetails">
+			<db:sql><![CDATA[select * from BookingDetails where TicketID= :TicketID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	TicketID : payload
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="a1697ba7-243b-4494-8e31-03296eb2a503" >
+			<when expression="#[isEmpty(vars.TicketDetails)]">
+				<ee:transform doc:name="Transform Message" doc:id="3f3961b1-b362-4d66-a481-71cf84007a7d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        
+        soap#cancelOrderResponse: {
+           
+           
+        message: "your Order with provided TicketID does not exist"
+        
+
+            
+        } 
+        
+    } write "application/xml"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[vars.TicketDetails[0].Status == "Cancelled"]'>
+				<ee:transform doc:name="Transform Message" doc:id="8c2e833e-df56-4b21-b201-79a2c2d45b77" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        
+        soap#cancelOrderResponse: {
+           
+           
+        message: "Already Cancelled"
+        
+
+            
+        } 
+        
+    } write "application/xml"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<db:update doc:name="cancelOrder" doc:id="67426e94-6370-4914-9094-587a4ebb5e8b" config-ref="order-db-config">
+			<db:sql><![CDATA[update BookingDetails set Status=:status where TicketID=:ticketID]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	status: "Cancelled",
+	ticketID: vars.TicketDetails[0].TicketID
+}]]]></db:input-parameters>
+		</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="f41a8e71-df6d-4c26-a9e1-c2874449676a">
+			<ee:message>
+				<ee:set-payload><![CDATA[
+%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        
+        soap#cancelOrderResponse: {
+           
+           
+        message: "your Order with ticketID " ++ vars.TicketDetails[0].TicketID default "ABC:Mandatory"++ "is successfully cancelled",
+        RefundAmount: vars.TicketDetails[0].RefundAmt
+
+            
+        } 
+        
+    } write "application/xml"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="bookOrderFlow" doc:id="33468c7b-604b-495e-8873-f90a681930cf" >
+		<set-variable value='#[payload.Movie ++ ":" ++ randomInt(1000) as String]' doc:name="TicketID" doc:id="3cc04e01-5e33-47e2-a69b-c7647ea293d4" variableName="TicketID"/>
+		<set-variable value="#[{ Movie: payload.Movie,&#10;	Theatre: payload.Theatre,&#10;	City: payload.City,&#10;	Date: payload.Date,&#10;	ShowTime: payload.ShowTime,&#10;	TotalSeats: payload.TotalSeats,&#10;	Status: payload.Status,&#10;	TicketID: vars.TicketID,&#10;	Seats: payload.Seats,&#10;	CurrentDate:payload.CurrentDate }]" doc:name="bookingData" doc:id="f72108a6-cc2e-4293-9c53-dc0d6260f5bc" variableName="bookingData"/>
+		<logger level="INFO" doc:name="Logger" doc:id="d2ad4460-f70b-4b28-a33f-ba411ac10207" message='#["Ticket generated with TicketID " ++ vars.TicketID]'/>
+		<db:insert doc:name="createOrder" doc:id="74484e51-137f-42e9-baee-ad5161db72d2" config-ref="order-db-config">
+			<db:sql ><![CDATA[insert into BookingDetails values(:TicketID,:Movie,:Theatre,:City,:Date,:ShowTime,:TotalSeats,:Seats,:Price,:Status,:RefundAmt,createdDateTime,updatedDateTime)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+
+output application/json
+---
+{
+	TicketID: vars.TicketID,
+	Movie: payload.Movie,
+	Theatre: payload.Theatre,
+	City: payload.City,
+	Date: payload.Date,
+	ShowTime: payload.ShowTime,
+	TotalSeats: payload.TotalSeats,
+	Seats: payload.Seats,
+	Price: payload.Price,
+	Status: "Booked",
+	RefundAmt: (payload.Price as Number)/2,
+	createdDateTime: now(),
+	updatedDateTime: null
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="JAVA TO XML" doc:id="58f983ba-6b89-4cb2-93bf-9b60ef77ae0d">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        soap#bookOrderResponse: {
+            movie: vars.bookingData.Movie,
+            ticketID: vars.TicketID,
+            Status: "Booked"
+            
+        }
+    } write "application/xml"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getOrderByIDFlow" doc:id="477954e8-67f0-43a1-8a6d-50962890f4ad" >
+		<db:select doc:name="getOrderByID" doc:id="8f45ae7b-57c9-46e4-9280-8bcc119eac28" config-ref="order-db-config">
+			<db:sql><![CDATA[select * from BookingDetails where TicketID= :TicketID]]></db:sql>
+			<db:input-parameters><![CDATA[#[TicketID: payload]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="e191bef4-9219-4226-adfb-fc627aa98501" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        
+        soap#getOrderByIDResponse: {
+           
+           
+        Status:{
+        	TicketID: payload[0].TicketID,
+        	Movie: payload[0].Movie,
+        	Theatre: payload[0].Theatre,
+        	City: payload[0].City,
+        	Date: payload[0].Date,
+        	ShowTime: payload[0].ShowTime,
+        	Seats: payload[0].Seats,
+        	Price: payload[0].Price,
+        	Status: payload[0].Status
+        }
+
+            
+        } 
+        
+    } write "application/xml"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
